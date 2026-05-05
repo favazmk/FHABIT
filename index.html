@@ -190,6 +190,10 @@ async function load(){
   try{ 
     const r = localStorage.getItem('gtd:appData'); 
     if(r) appData = JSON.parse(r);
+    // Assign colors to existing goals if they don't have one
+    appData.goals.forEach((g, i) => {
+      if(!g.color) g.color = COLORS[i % COLORS.length];
+    });
   }catch(e){}
   showHome();
 }
@@ -277,8 +281,17 @@ function openGoal(id) {
   
   // Set theme color
   const color = G.color || '#10B981';
-  document.getElementById('dashboard-header-card').style.borderTopColor = color;
-  document.querySelectorAll('.btn-green').forEach(b => b.style.background = color);
+  const headerCard = document.getElementById('dashboard-header-card');
+  if(headerCard) headerCard.style.borderTopColor = color;
+  
+  // Update all green buttons
+  const updateButtons = () => {
+    document.querySelectorAll('.btn-green').forEach(b => b.style.backgroundColor = color);
+  };
+  updateButtons();
+  // Observer to catch dynamically added buttons
+  const observer = new MutationObserver(updateButtons);
+  observer.observe(document.getElementById('dashboard'), { childList: true, subtree: true });
   
   const streakIcon = document.getElementById('icon-streak');
   if(streakIcon) {
