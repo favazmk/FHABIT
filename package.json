@@ -1,0 +1,14 @@
+{
+  "name": "deeper-fix",
+  "version": "1.0.0",
+  "description": "A simple, beautiful, and functional habit tracker built with HTML, CSS, and Vanilla JavaScript.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "npx vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
