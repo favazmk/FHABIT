@@ -1,0 +1,490 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goal & Daily Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body,div,span,p{font-family:'DM Sans',sans-serif}
+body { background: var(--color-background-primary, #ffffff); }
+.root{padding:1rem 1rem;color:var(--color-text-primary, #111); max-width: 600px; margin: 0 auto;}
+.title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;line-height:1}
+.label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--color-text-tertiary, #666)}
+.card{background:var(--color-background-secondary, #f9f9f9);border:0.5px solid var(--color-border-tertiary, #e0e0e0);border-radius:var(--border-radius-lg, 12px);padding:1rem 1.25rem;margin-bottom:10px}
+.card-white{background:var(--color-background-primary, #ffffff);border:0.5px solid var(--color-border-tertiary, #e0e0e0);border-radius:var(--border-radius-lg, 12px);padding:1rem 1.25rem;margin-bottom:10px; transition: all 0.2s ease;}
+.goal-card:hover { border-color: #10B981; cursor: pointer; box-shadow: 0 6px 16px rgba(16,185,129,.08); transform: translateY(-2px);}
+
+/* Form Elements */
+.inp{width:100%;border:0.5px solid var(--color-border-secondary, #ccc);border-radius:var(--border-radius-md, 8px);padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--color-background-primary, #fff);color:var(--color-text-primary, #111);outline:none;margin-bottom:8px; transition: border-color 0.2s;}
+.inp:focus{border-color:#10B981;box-shadow:0 0 0 2px rgba(16,185,129,.12)}
+.inp-date{width:100%}
+.btn{border:0.5px solid var(--color-border-secondary, #ccc);border-radius:var(--border-radius-md, 8px);padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;background:transparent;color:var(--color-text-primary, #111);cursor:pointer; transition: all 0.15s;}
+.btn:hover{background:var(--color-background-secondary, #f0f0f0)}
+.btn-green{background:#10B981;border-color:#10B981;color:#fff}
+.btn-green:hover{background:#059669; border-color: #059669;}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-ghost{border:none;background:none;cursor:pointer;color:var(--color-text-tertiary, #666);font-size:13px;padding:2px}
+.btn-ghost:hover{color:var(--color-text-danger, #d32f2f)}
+
+/* Progress & Visuals */
+.progress-track{height:8px;background:var(--color-border-tertiary, #e0e0e0);border-radius:4px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg, #10B981, #34D399);border-radius:4px;transition:width .4s cubic-bezier(0.4, 0, 0.2, 1)}
+.check-box{width:22px;height:22px;min-width:22px;border:1.5px solid var(--color-border-secondary, #ccc);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--color-background-primary, #fff);transition:all .2s cubic-bezier(0.4, 0, 0.2, 1)}
+.check-box.green{background:#10B981;border-color:#10B981;color:#fff}
+
+/* Layout utilities */
+.row{display:flex;align-items:center;gap:8px}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.divider{border:none;border-top:0.5px solid var(--color-border-tertiary, #e0e0e0);margin:10px 0}
+
+/* Tags */
+.tag-days{font-size:11px;padding:4px 8px;border-radius:4px;font-weight:700;background:#ECFDF5;color:#065F46;white-space:nowrap; display:inline-flex; align-items:center; gap: 4px;}
+.tag-urgent{background:#FCEBEB;color:#9F1239}
+
+/* Typography */
+.streak-num{font-family:'Bebas Neue',sans-serif;font-size:40px;line-height:1;color:#10B981}
+.section-title{font-size:14px;font-weight:700;color:var(--color-text-primary, #111);margin-bottom:2px}
+.muted{color:var(--color-text-secondary, #666)}
+.small{font-size:12px}
+.tiny{font-size:11px}
+.sr-only {position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;}
+
+/* Stats Grid Dashboard */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.stat-box { background: var(--color-background-secondary, #f9f9f9); border: 0.5px solid var(--color-border-tertiary, #e0e0e0); border-radius: 12px; padding: 12px 6px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;}
+.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1.1; margin: 6px 0 2px 0; color: var(--color-text-primary, #111); }
+.stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-tertiary, #666); }
+.icon-wrapper { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+/* Icon Colors */
+.bg-green-light { background: rgba(16,185,129,0.15); color: #10B981; }
+.bg-blue-light { background: rgba(59,130,246,0.15); color: #3B82F6; }
+.bg-red-light { background: rgba(244,63,94,0.15); color: #F43F5E; }
+
+.history-dot { flex: 1; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; transition: transform 0.1s; cursor: default;}
+.history-dot:hover { transform: scale(1.1); }
+
+@media(prefers-color-scheme:dark){
+  :root {
+    --color-background-primary: #121212;
+    --color-background-secondary: #1e1e1e;
+    --color-border-tertiary: #333;
+    --color-border-secondary: #444;
+    --color-text-primary: #eee;
+    --color-text-secondary: #bbb;
+    --color-text-tertiary: #888;
+  }
+  .tag-days{background:#064E3B;color:#6EE7B7}
+  .tag-urgent{background:#501313;color:#F09595}
+}
+</style>
+</head>
+<body>
+
+<div class="root">
+  <h2 class="sr-only">Goal Tracker Dashboard</h2>
+  
+  <!-- HOME SCREEN -->
+  <div id="home-screen">
+    <div class="row-between" style="margin-bottom:20px;">
+      <div class="title" style="font-size:28px;">My Goals</div>
+      <button class="btn btn-sm btn-green" style="padding: 8px 14px; font-size: 13px;" onclick="createNewGoal()">+ New Goal</button>
+    </div>
+    
+    <div id="goal-list"></div>
+  </div>
+
+  <!-- GOAL DASHBOARD -->
+  <div id="dashboard" style="display:none;">
+    <button class="btn-ghost small" onclick="showHome()" style="margin-bottom:16px; display:inline-flex; align-items:center; gap:4px; font-weight:700;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Goals
+    </button>
+
+    <!-- The Goal Section -->
+    <div class="card-white" style="margin-bottom:16px; border-top: 4px solid #10B981;">
+      <div class="label" style="margin-bottom:6px">Major Goal</div>
+      <input class="inp" id="app-goal" placeholder="e.g. Launch project and hit first milestone" style="font-size: 18px; font-weight: 700; border:none; padding: 0; margin-bottom: 12px;" onchange="updateGoal()" />
+      
+      <div class="label" style="margin-bottom:6px">Target Deadline</div>
+      <input class="inp inp-date" type="date" id="app-deadline" style="border:none; padding:0; font-weight:500;" onchange="updateGoal()" />
+    </div>
+
+    <!-- Visual Dashboard -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div id="icon-pct" class="icon-wrapper bg-green-light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+        </div>
+        <div class="stat-value" id="stat-pct">0%</div>
+        <div class="stat-label">Milestones</div>
+      </div>
+      
+      <div class="stat-box">
+        <div id="icon-days" class="icon-wrapper bg-blue-light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
+        <div class="stat-value" id="stat-days">--</div>
+        <div class="stat-label" id="stat-days-label">Days Left</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="icon-wrapper bg-green-light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+        </div>
+        <div class="stat-value" style="color: #10B981;" id="stat-streak">0</div>
+        <div class="stat-label">Daily Streak</div>
+      </div>
+    </div>
+
+    <!-- Milestones (Chunks) -->
+    <div class="label" style="margin-bottom:8px">Milestones</div>
+    <div id="app-chunks"></div>
+    <button class="btn btn-sm" onclick="addChunk()" style="margin-bottom:24px; color:var(--color-text-tertiary); border-style: dashed;">+ Add Milestone</button>
+
+    <!-- Today's Tasks -->
+    <div class="label" style="margin-bottom:8px">Today's Action Plan</div>
+    <div class="card-white" id="m-tasks-card" style="margin-bottom:20px; padding: 16px;">
+      <div id="m-tasks-list"></div>
+      
+      <div class="row" style="margin-top:12px;gap:6px">
+        <input class="inp" id="m-task-inp" placeholder="Add a task for today..." style="margin-bottom:0;flex:1" onkeydown="if(event.key==='Enter')addDailyTask()"/>
+        <button class="btn btn-sm btn-green" onclick="addDailyTask()">Add</button>
+      </div>
+    </div>
+
+    <!-- Log Day & History -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn btn-green" style="width:100%; font-size: 15px; padding: 12px; display:flex; justify-content:center; align-items:center; gap:8px;" onclick="logDay()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Log Daily Progress
+      </button>
+    </div>
+    <div id="m-log-msg" style="display:none;font-size:13px;color:#10B981;margin-bottom:12px;font-weight:700;text-align:center;">&#10003; Great job! Streak updated.</div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:12px; display:flex; justify-content:space-between;">
+        <span>14-Day Consistency</span>
+      </div>
+      <div id="m-history" style="display:flex;gap:4px; width: 100%;"></div>
+    </div>
+
+    <div style="text-align:center; margin-top:30px;">
+      <button class="btn-ghost tiny" onclick="deleteCurrentGoal()" style="color:var(--color-text-danger, #F43F5E)">Delete Goal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TODAY = new Date().toISOString().split('T')[0];
+
+let appData = { goals: [] };
+let activeGoalId = null;
+let G = null; 
+
+async function load(){
+  try{ 
+    const r = localStorage.getItem('gtd:appData'); 
+    if(r) appData = JSON.parse(r);
+  }catch(e){}
+  showHome();
+}
+
+async function save(){ 
+  try{ localStorage.setItem('gtd:appData', JSON.stringify(appData)); }catch(e){} 
+}
+
+function showHome() {
+  activeGoalId = null; G = null;
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('home-screen').style.display = 'block';
+  renderGoalList();
+}
+
+function renderGoalList() {
+  const list = document.getElementById('goal-list');
+  list.innerHTML = '';
+  
+  if(appData.goals.length === 0) {
+    list.innerHTML = `
+      <div class="card-white" style="text-align:center; padding: 3rem 1rem;">
+        <div style="margin-bottom:16px; color:#10B981;">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+        </div>
+        <div class="section-title" style="margin-bottom:4px; font-size:16px;">No active goals yet</div>
+        <div class="muted small" style="margin-bottom:20px;">What do you want to accomplish?</div>
+        <button class="btn btn-green" onclick="createNewGoal()">Create your first goal</button>
+      </div>`;
+    return;
+  }
+  
+  appData.goals.forEach(goalObj => {
+    const total = (goalObj.chunks||[]).filter(c => c.name.trim() !== '').length;
+    const done = (goalObj.chunks||[]).filter(c => c.name.trim() !== '' && c.done).length;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    
+    const div = document.createElement('div');
+    div.className = 'card-white goal-card';
+    div.onclick = () => openGoal(goalObj.id);
+    
+    div.innerHTML = `
+      <div class="row-between" style="margin-bottom: 8px;">
+        <div class="section-title" style="font-size:17px; line-height:1.3;">${goalObj.goal || 'Unnamed Goal'}</div>
+      </div>
+      <div class="row-between tiny muted" style="margin-bottom:8px;">
+        <span>${pct}% Milestones Done</span>
+        <span style="font-weight:700; color:#10B981;">${goalObj.streak || 0} Day Streak</span>
+      </div>
+      <div class="progress-track" style="margin:0; height:4px;">
+         <div class="progress-fill" style="width:${pct}%"></div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function createNewGoal() {
+  const newGoal = {
+    id: 'g-' + Date.now() + Math.floor(Math.random()*1000),
+    goal: '', deadline: '',
+    chunks: [{ name: '', deadline: '', done: false }],
+    dailyTasks: {}, log: {}, streak: 0, lastLogged: null
+  };
+  appData.goals.unshift(newGoal);
+  save();
+  openGoal(newGoal.id);
+}
+
+function openGoal(id) {
+  activeGoalId = id;
+  G = appData.goals.find(g => g.id === id);
+  if (!G) return showHome();
+  
+  if(!G.chunks) G.chunks = [];
+  if(!G.dailyTasks) G.dailyTasks = {};
+  if(!G.log) G.log = {};
+
+  document.getElementById('app-goal').value = G.goal || '';
+  document.getElementById('app-deadline').value = G.deadline || '';
+  
+  document.getElementById('home-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  
+  renderAll();
+}
+
+function updateGoal() {
+  if (!G) return;
+  G.goal = document.getElementById('app-goal').value.trim();
+  G.deadline = document.getElementById('app-deadline').value;
+  save(); renderProgress();
+}
+
+function addChunk() {
+  if (!G) return;
+  G.chunks.push({ name: '', deadline: '', done: false });
+  save(); renderChunks(); renderProgress();
+}
+
+function updateChunk(index, field, value) {
+  if (!G) return;
+  G.chunks[index][field] = value;
+  save(); if (field === 'deadline' || field === 'done') renderProgress(); 
+}
+
+function toggleChunk(index) {
+  if (!G) return;
+  G.chunks[index].done = !G.chunks[index].done;
+  save(); renderAll();
+}
+
+function removeChunk(index) {
+  if (!G) return;
+  G.chunks.splice(index, 1);
+  save(); renderAll();
+}
+
+function renderAll() {
+  if (!G) return;
+  renderProgress(); renderChunks(); renderTasks(); renderHistory();
+}
+
+function renderProgress() {
+  if (!G) return;
+  const daysLeft = daysUntil(G.deadline);
+  const total = G.chunks.filter(c => c.name.trim() !== '').length;
+  const done = G.chunks.filter(c => c.name.trim() !== '' && c.done).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  
+  document.getElementById('stat-pct').textContent = pct + '%';
+  const daysEl = document.getElementById('stat-days');
+  const daysLabel = document.getElementById('stat-days-label');
+  
+  if (G.deadline) {
+    if (daysLeft < 0) {
+      daysEl.textContent = Math.abs(daysLeft); daysEl.style.color = '#F43F5E'; daysLabel.textContent = 'Days Overdue';
+    } else {
+      daysEl.textContent = daysLeft; daysEl.style.color = 'var(--color-text-primary)'; daysLabel.textContent = 'Days Left';
+    }
+  } else {
+    daysEl.textContent = '--'; daysLabel.textContent = 'No Deadline';
+  }
+
+  document.getElementById('stat-streak').textContent = G.streak || 0;
+}
+
+function renderChunks() {
+  if (!G) return;
+  const cont = document.getElementById('app-chunks');
+  cont.innerHTML = '';
+  G.chunks.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'row';
+    div.style.cssText = 'padding:6px 0; border-bottom:1px solid var(--color-border-tertiary)';
+    div.innerHTML = `
+      <div class="check-box ${c.done?'green':''}" onclick="toggleChunk(${i})" style="width:18px;height:18px;min-width:18px;border-radius:4px;">
+        ${c.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
+      </div>
+      <input class="inp" style="flex:1; margin:0; border:none; background:transparent; padding:0; ${c.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" value="${c.name||''}" placeholder="Milestone name..." onchange="updateChunk(${i}, 'name', this.value)" />
+      <button class="btn-ghost" onclick="removeChunk(${i})">&times;</button>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+function getTasksToday() { return G ? (G.dailyTasks[TODAY] || []) : []; }
+
+function renderTasks() {
+  if (!G) return;
+  const list = document.getElementById('m-tasks-list');
+  const tasks = getTasksToday();
+  list.innerHTML = '';
+  
+  if(!tasks.length){
+    list.innerHTML = `
+      <div class="row muted" style="padding:4px 0 8px; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span class="small">No tasks yet. Add a small step for today!</span>
+      </div>`;
+    return;
+  }
+  
+  tasks.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.style.cssText = 'padding:8px 0;border-bottom:0.5px dashed var(--color-border-tertiary);gap:10px';
+    row.innerHTML = `
+      <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px;">
+        ${t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
+      </div>
+      <span class="small" style="flex:1; font-size:14px; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text}</span>
+      <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px">&times;</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addDailyTask() {
+  if (!G) return;
+  const inp = document.getElementById('m-task-inp');
+  const val = inp.value.trim();
+  if(!val) return;
+  if(!G.dailyTasks[TODAY]) G.dailyTasks[TODAY] = [];
+  G.dailyTasks[TODAY].push({text:val, done:false});
+  inp.value = '';
+  save(); renderTasks();
+}
+
+function toggleTask(i) {
+  if (!G) return;
+  G.dailyTasks[TODAY][i].done = !G.dailyTasks[TODAY][i].done;
+  save(); renderTasks();
+}
+
+function removeTask(i) {
+  if (!G) return;
+  G.dailyTasks[TODAY].splice(i,1);
+  save(); renderTasks();
+}
+
+async function logDay() {
+  if (!G) return;
+  
+  const last = G.lastLogged;
+  if(last) {
+    const diff = Math.round((new Date(TODAY) - new Date(last))/(1000*60*60*24));
+    if(diff === 1) G.streak = (G.streak||0) + 1;
+    else if(diff > 2) G.streak = 1;
+    else if(diff === 0) { showLogMsg('You already logged progress today!'); return; }
+    else G.streak = (G.streak||0) + 1;
+  } else { 
+    G.streak = 1; 
+  }
+  
+  G.lastLogged = TODAY;
+  if(!G.log) G.log = {};
+  G.log[TODAY] = true;
+  
+  await save();
+  document.getElementById('stat-streak').textContent = G.streak;
+  renderHistory();
+  showLogMsg('&#10003; Great job! Streak updated.');
+}
+
+function showLogMsg(msg) {
+  const el = document.getElementById('m-log-msg');
+  el.innerHTML = msg; el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
+function renderHistory() {
+  if (!G) return;
+  const cont = document.getElementById('m-history');
+  cont.innerHTML = '';
+  for(let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const logged = !!(G.log && G.log[key]);
+    
+    const dot = document.createElement('div');
+    dot.className = 'history-dot';
+    dot.title = d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+    
+    if (logged) {
+      dot.style.background = '#10B981';
+      dot.style.color = '#fff';
+      dot.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    } else {
+      dot.style.background = 'var(--color-background-secondary)';
+      dot.style.border = '0.5px solid var(--color-border-tertiary)';
+      dot.style.color = 'var(--color-text-tertiary)';
+      dot.textContent = d.getDate();
+    }
+    cont.appendChild(dot);
+  }
+}
+
+function daysUntil(dateStr) {
+  if(!dateStr) return 999;
+  const dl = new Date(dateStr); dl.setHours(23,59,59);
+  return Math.ceil((dl - new Date())/(1000*60*60*24));
+}
+
+function deleteCurrentGoal() { 
+  if(!G || !activeGoalId) return;
+  if(confirm('Are you sure you want to delete this goal and all its progress?')){ 
+    appData.goals = appData.goals.filter(g => g.id !== activeGoalId);
+    save(); showHome();
+  } 
+}
+
+load();
+</script>
+</body>
+</html>
+
+
+```
