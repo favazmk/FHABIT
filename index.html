@@ -104,7 +104,7 @@ body { background: var(--color-background-primary, #ffffff); }
     </button>
 
     <!-- The Goal Section -->
-    <div class="card-white" style="margin-bottom:16px; border-top: 4px solid #10B981;">
+    <div class="card-white" id="dashboard-header-card" style="margin-bottom:16px; border-top: 4px solid #10B981;">
       <div class="label" style="margin-bottom:6px">Major Goal</div>
       <input class="inp" id="app-goal" placeholder="e.g. Launch project and hit first milestone" style="font-size: 18px; font-weight: 700; border:none; padding: 0; margin-bottom: 12px;" onchange="updateGoal()" />
       
@@ -131,10 +131,10 @@ body { background: var(--color-background-primary, #ffffff); }
       </div>
 
       <div class="stat-box">
-        <div class="icon-wrapper bg-green-light">
+        <div id="icon-streak" class="icon-wrapper" style="background: rgba(16,185,129,0.15); color: #10B981;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
         </div>
-        <div class="stat-value" style="color: #10B981;" id="stat-streak">0</div>
+        <div class="stat-value" id="stat-streak">0</div>
         <div class="stat-label">Daily Streak</div>
       </div>
     </div>
@@ -179,6 +179,8 @@ body { background: var(--color-background-primary, #ffffff); }
 
 <script>
 const TODAY = new Date().toISOString().split('T')[0];
+
+const COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4'];
 
 let appData = { goals: [] };
 let activeGoalId = null;
@@ -235,10 +237,10 @@ function renderGoalList() {
       </div>
       <div class="row-between tiny muted" style="margin-bottom:8px;">
         <span>${pct}% Milestones Done</span>
-        <span style="font-weight:700; color:#10B981;">${goalObj.streak || 0} Day Streak</span>
+        <span style="font-weight:700; color:${goalObj.color || '#10B981'};">${goalObj.streak || 0} Day Streak</span>
       </div>
       <div class="progress-track" style="margin:0; height:4px;">
-         <div class="progress-fill" style="width:${pct}%"></div>
+         <div class="progress-fill" style="width:${pct}%; background:${goalObj.color || '#10B981'}"></div>
       </div>
     `;
     list.appendChild(div);
@@ -249,6 +251,7 @@ function createNewGoal() {
   const newGoal = {
     id: 'g-' + Date.now() + Math.floor(Math.random()*1000),
     goal: '', deadline: '',
+    color: COLORS[appData.goals.length % COLORS.length],
     chunks: [{ name: '', deadline: '', done: false }],
     dailyTasks: {}, log: {}, streak: 0, lastLogged: null
   };
@@ -271,6 +274,17 @@ function openGoal(id) {
   
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
+  
+  // Set theme color
+  const color = G.color || '#10B981';
+  document.getElementById('dashboard-header-card').style.borderTopColor = color;
+  document.querySelectorAll('.btn-green').forEach(b => b.style.background = color);
+  
+  const streakIcon = document.getElementById('icon-streak');
+  if(streakIcon) {
+    streakIcon.style.background = color + '26'; // 15% opacity
+    streakIcon.style.color = color;
+  }
   
   renderAll();
 }
@@ -319,6 +333,11 @@ function renderProgress() {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   
   document.getElementById('stat-pct').textContent = pct + '%';
+  const pctFill = document.querySelector('#dashboard .progress-fill');
+  if(pctFill) {
+    pctFill.style.width = pct + '%';
+    pctFill.style.background = G.color || '#10B981';
+  }
   const daysEl = document.getElementById('stat-days');
   const daysLabel = document.getElementById('stat-days-label');
   
@@ -333,6 +352,7 @@ function renderProgress() {
   }
 
   document.getElementById('stat-streak').textContent = G.streak || 0;
+  document.getElementById('stat-streak').style.color = G.color || '#10B981';
 }
 
 function renderChunks() {
@@ -344,7 +364,7 @@ function renderChunks() {
     div.className = 'row';
     div.style.cssText = 'padding:6px 0; border-bottom:1px solid var(--color-border-tertiary)';
     div.innerHTML = `
-      <div class="check-box ${c.done?'green':''}" onclick="toggleChunk(${i})" style="width:18px;height:18px;min-width:18px;border-radius:4px;">
+      <div class="check-box ${c.done?'green':''}" onclick="toggleChunk(${i})" style="width:18px;height:18px;min-width:18px;border-radius:4px; ${c.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
         ${c.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
       </div>
       <input class="inp" style="flex:1; margin:0; border:none; background:transparent; padding:0; ${c.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" value="${c.name||''}" placeholder="Milestone name..." onchange="updateChunk(${i}, 'name', this.value)" />
@@ -376,7 +396,7 @@ function renderTasks() {
     row.className = 'row';
     row.style.cssText = 'padding:8px 0;border-bottom:0.5px dashed var(--color-border-tertiary);gap:10px';
     row.innerHTML = `
-      <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px;">
+      <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px; ${t.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
         ${t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
       </div>
       <span class="small" style="flex:1; font-size:14px; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text}</span>
@@ -453,7 +473,7 @@ function renderHistory() {
     dot.title = d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
     
     if (logged) {
-      dot.style.background = '#10B981';
+      dot.style.background = G.color || '#10B981';
       dot.style.color = '#fff';
       dot.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
     } else {
