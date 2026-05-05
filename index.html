@@ -164,12 +164,6 @@ body { background: var(--color-background-primary, #ffffff); }
     </div>
     <div id="m-log-msg" style="display:none;font-size:13px;color:#10B981;margin-bottom:12px;font-weight:700;text-align:center;">&#10003; Great job! Streak updated.</div>
 
-    <div class="card" style="margin-bottom:24px">
-      <div class="label" style="margin-bottom:12px; display:flex; justify-content:space-between;">
-        <span>14-Day Consistency</span>
-      </div>
-      <div id="m-history" style="display:flex;gap:4px; width: 100%;"></div>
-    </div>
 
     <div style="text-align:center; margin-top:30px;">
       <button class="btn-ghost tiny" onclick="deleteCurrentGoal()" style="color:var(--color-text-danger, #F43F5E)">Delete Goal</button>
@@ -322,7 +316,7 @@ function removeChunk(index) {
 
 function renderAll() {
   if (!G) return;
-  renderProgress(); renderChunks(); renderTasks(); renderHistory();
+  renderProgress(); renderChunks(); renderTasks();
 }
 
 function renderProgress() {
@@ -449,7 +443,6 @@ async function logDay() {
   
   await save();
   document.getElementById('stat-streak').textContent = G.streak;
-  renderHistory();
   showLogMsg('&#10003; Great job! Streak updated.');
 }
 
@@ -459,32 +452,6 @@ function showLogMsg(msg) {
   setTimeout(() => { el.style.display = 'none'; }, 3500);
 }
 
-function renderHistory() {
-  if (!G) return;
-  const cont = document.getElementById('m-history');
-  cont.innerHTML = '';
-  for(let i = 13; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
-    const logged = !!(G.log && G.log[key]);
-    
-    const dot = document.createElement('div');
-    dot.className = 'history-dot';
-    dot.title = d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-    
-    if (logged) {
-      dot.style.background = G.color || '#10B981';
-      dot.style.color = '#fff';
-      dot.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-    } else {
-      dot.style.background = 'var(--color-background-secondary)';
-      dot.style.border = '0.5px solid var(--color-border-tertiary)';
-      dot.style.color = 'var(--color-text-tertiary)';
-      dot.textContent = d.getDate();
-    }
-    cont.appendChild(dot);
-  }
-}
 
 function daysUntil(dateStr) {
   if(!dateStr) return 999;
