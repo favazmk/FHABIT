@@ -183,29 +183,11 @@ body { background: var(--color-background-primary, #ffffff); }
     </div>
 
     <!-- Milestones (Chunks) -->
-    <div class="label" style="margin-bottom:8px">Milestones</div>
-    <div id="app-chunks"></div>
-    <button class="btn btn-sm" onclick="addChunk()" style="margin-bottom:24px; color:var(--color-text-tertiary); border-style: dashed;">+ Add Milestone</button>
-
-    <!-- Today's Tasks -->
-    <div class="label" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-      <span>Today's Action Plan</span>
-      <span id="m-tasks-pct" style="font-weight:700; color:var(--color-text-primary);">0%</span>
+    <div class="row-between" style="margin-bottom:12px;">
+      <div class="label" style="margin:0;">Milestones & Tasks</div>
+      <button class="btn-ghost small" style="color:var(--color-text-tertiary); font-weight:700;" onclick="addChunk()">+ Add Milestone</button>
     </div>
-    <div class="progress-track" style="margin:0 0 12px 0; height:6px;">
-      <div id="m-tasks-progress" class="progress-fill" style="width:0%"></div>
-    </div>
-    <div class="card-white" id="m-tasks-card" style="margin-bottom:20px; padding: 16px;">
-      <div id="m-tasks-list"></div>
-      
-      <div class="row" style="margin-top:12px;gap:6px; flex-wrap:wrap;">
-        <input class="inp" id="m-task-inp" placeholder="Add a task for today..." style="margin-bottom:0;flex:1; min-width:140px;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
-        <select class="inp" id="m-task-chunk" style="margin-bottom:0; width:auto; max-width:140px; padding:8px 6px; font-size:12px; cursor:pointer;">
-          <option value="">No milestone</option>
-        </select>
-        <button class="btn btn-sm btn-green" onclick="addDailyTask()">Add</button>
-      </div>
-    </div>
+    <div id="app-chunks" style="margin-bottom:24px;"></div>
 
     <!-- Log Day & History -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -347,7 +329,6 @@ function openGoal(id) {
   if (!G) return showHome();
   
   if(!G.chunks) G.chunks = [];
-  if(!G.dailyTasks) G.dailyTasks = {};
   if(!G.log) G.log = {};
 
   const appGoalEl = document.getElementById('app-goal');
@@ -445,8 +426,8 @@ function updateGoal() {
 
 function addChunk() {
   if (!G) return;
-  G.chunks.push({ name: '', deadline: '', done: false });
-  save(); renderChunks(); renderProgress();
+  G.chunks.push({ name: '', deadline: '', done: false, tasks: [] });
+  save(); renderAll();
 }
 
 function updateChunk(index, field, value) {
@@ -469,7 +450,7 @@ function removeChunk(index) {
 
 function renderAll() {
   if (!G) return;
-  renderProgress(); renderChunks(); renderTasks(); renderHistory();
+  renderProgress(); renderChunks(); renderHistory();
 }
 
 function renderProgress() {
@@ -507,119 +488,89 @@ function renderChunks() {
   const cont = document.getElementById('app-chunks');
   cont.innerHTML = '';
   G.chunks.forEach((c, i) => {
+    if(!c.tasks) c.tasks = []; // initialize if missing
+    
     const div = document.createElement('div');
-    div.className = 'row';
-    div.style.cssText = 'padding:6px 0; border-bottom:1px solid var(--color-border-tertiary)';
-    div.innerHTML = `
-      <div class="check-box ${c.done?'green':''}" onclick="toggleChunk(${i})" style="width:18px;height:18px;min-width:18px;border-radius:4px; ${c.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
-        ${c.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
+    div.className = 'card-white';
+    div.style.cssText = 'padding:14px; margin-bottom:12px;';
+    
+    // Progress for this milestone
+    const totalT = c.tasks.length;
+    const doneT = c.tasks.filter(t => t.done).length;
+    const pctT = totalT > 0 ? Math.round((doneT/totalT)*100) : 0;
+    
+    let html = `
+      <div class="row" style="margin-bottom:4px;">
+        <div class="check-box ${c.done?'green':''}" onclick="toggleChunk(${i})" style="width:20px;height:20px;min-width:20px;border-radius:6px; ${c.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
+          ${c.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
+        </div>
+        <input class="inp" style="flex:1; margin:0; border:none; font-weight:700; font-size:15px; background:transparent; padding:0; ${c.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" value="${c.name||''}" placeholder="Milestone name..." onchange="updateChunk(${i}, 'name', this.value)" />
+        <button class="btn-ghost" onclick="removeChunk(${i})" style="font-size:18px;">&times;</button>
       </div>
-      <input class="inp" style="flex:1; margin:0; border:none; background:transparent; padding:0; ${c.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" value="${c.name||''}" placeholder="Milestone name..." onchange="updateChunk(${i}, 'name', this.value)" />
-      <button class="btn-ghost" onclick="removeChunk(${i})">&times;</button>
+      
+      <!-- Mini Progress Bar -->
+      <div class="progress-track" style="margin:4px 0 12px 30px; height:4px; background:var(--color-background-secondary); border-radius:2px;">
+         <div class="progress-fill" style="width:${pctT}%; background:${G.color||'#10B981'}"></div>
+      </div>
+      
+      <div style="padding-left:30px;">
     `;
+    
+    // Tasks
+    c.tasks.forEach((t, j) => {
+      html += `
+        <div class="row" style="padding:6px 0; border-bottom:0.5px dashed var(--color-border-tertiary); gap:8px;">
+          <div class="check-box ${t.done?'green':''}" onclick="toggleChunkTask(${i}, ${j})" style="width:16px;height:16px;min-width:16px;border-radius:4px; ${t.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
+            ${t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
+          </div>
+          <input type="text" value="${t.text.replace(/"/g, '&quot;')}" onchange="updateChunkTaskText(${i}, ${j}, this.value)" style="border:none; background:transparent; font-size:13px; outline:none; flex:1; font-family:inherit; color:inherit; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" />
+          <button class="btn-ghost" onclick="removeChunkTask(${i}, ${j})" style="font-size:14px; padding:0;">&times;</button>
+        </div>
+      `;
+    });
+    
+    // Add task input
+    html += `
+        <div class="row" style="margin-top:8px; gap:6px;">
+          <input class="inp" id="inp-task-${i}" placeholder="Add a task to this milestone..." style="margin:0; flex:1; padding:6px 10px; font-size:12px; border-style:dashed;" onkeydown="if(event.key==='Enter')addChunkTask(${i})"/>
+          <button class="btn btn-sm" style="color:${G.color||'#10B981'}; border-color:${G.color||'#10B981'}; background:transparent;" onclick="addChunkTask(${i})">Add</button>
+        </div>
+      </div>
+    `;
+    
+    div.innerHTML = html;
     cont.appendChild(div);
   });
-  updateMilestoneDropdown();
 }
 
-function updateMilestoneDropdown() {
-  const sel = document.getElementById('m-task-chunk');
-  if(!sel) return;
-  const currentVal = sel.value;
-  sel.innerHTML = '<option value="">Link to milestone...</option>';
-  if(G && G.chunks) {
-    G.chunks.forEach((c, i) => {
-      if(c.name.trim() !== '') {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = c.name;
-        sel.appendChild(opt);
-      }
-    });
-  }
-  sel.value = currentVal;
-}
-
-function getTasksToday() { return G ? (G.dailyTasks[TODAY] || []) : []; }
-
-function renderTasks() {
+function addChunkTask(chunkIdx) {
   if (!G) return;
-  const list = document.getElementById('m-tasks-list');
-  const tasks = getTasksToday();
-  list.innerHTML = '';
-  
-  if(!tasks.length){
-    list.innerHTML = `
-      <div class="row muted" style="padding:4px 0 8px; gap:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-        <span class="small">No tasks yet. Add a small step for today!</span>
-      </div>`;
-    return;
-  }
-  
-  tasks.forEach((t, i) => {
-    let chunkTag = '';
-    if (t.chunkName) {
-      chunkTag = `<span style="font-size:10px; border: 1px solid var(--color-border-tertiary); padding:2px 6px; border-radius:4px; margin-left:6px; color:${G.color||'#10B981'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; display:inline-block; vertical-align:middle;">${t.chunkName}</span>`;
-    }
-    
-    const row = document.createElement('div');
-    row.className = 'row';
-    row.style.cssText = 'padding:8px 0;border-bottom:0.5px dashed var(--color-border-tertiary);gap:10px';
-    row.innerHTML = `
-      <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px; ${t.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
-        ${t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
-      </div>
-      <div style="flex:1; display:flex; align-items:center; overflow:hidden;">
-        <input type="text" value="${t.text.replace(/"/g, '&quot;')}" onchange="updateTaskText(${i}, this.value)" style="border:none; background:transparent; font-size:14px; outline:none; flex:1; font-family:inherit; color:inherit; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" />
-        ${chunkTag}
-      </div>
-      <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px">&times;</button>
-    `;
-    list.appendChild(row);
-  });
-  
-  // Update progress bar
-  const pct = tasks.length > 0 ? Math.round((tasks.filter(t => t.done).length / tasks.length) * 100) : 0;
-  const pb = document.getElementById('m-tasks-progress');
-  const pt = document.getElementById('m-tasks-pct');
-  if(pb) { pb.style.width = pct + '%'; pb.style.background = G.color || '#10B981'; }
-  if(pt) { pt.textContent = pct + '%'; pt.style.color = G.color || '#10B981'; }
+  const inp = document.getElementById('inp-task-' + chunkIdx);
+  const val = inp.value.trim();
+  if(!val) return;
+  if(!G.chunks[chunkIdx].tasks) G.chunks[chunkIdx].tasks = [];
+  G.chunks[chunkIdx].tasks.push({text: val, done: false});
+  save(); renderAll();
 }
 
-function updateTaskText(i, newText) {
+function toggleChunkTask(cIdx, tIdx) {
+  if (!G) return;
+  G.chunks[cIdx].tasks[tIdx].done = !G.chunks[cIdx].tasks[tIdx].done;
+  save(); renderAll();
+}
+
+function removeChunkTask(cIdx, tIdx) {
+  if (!G) return;
+  G.chunks[cIdx].tasks.splice(tIdx, 1);
+  save(); renderAll();
+}
+
+function updateChunkTaskText(cIdx, tIdx, newText) {
   if (!G) return;
   const val = newText.trim();
-  if(!val) return removeTask(i);
-  G.dailyTasks[TODAY][i].text = val;
+  if(!val) return removeChunkTask(cIdx, tIdx);
+  G.chunks[cIdx].tasks[tIdx].text = val;
   save();
-}
-
-function addDailyTask() {
-  if (!G) return;
-  const inp = document.getElementById('m-task-inp');
-  const sel = document.getElementById('m-task-chunk');
-  const val = inp.value.trim();
-  const chunkName = sel && sel.value !== "" ? sel.options[sel.selectedIndex].text : "";
-  
-  if(!val) return;
-  if(!G.dailyTasks[TODAY]) G.dailyTasks[TODAY] = [];
-  G.dailyTasks[TODAY].push({text:val, done:false, chunkName: chunkName});
-  inp.value = '';
-  if(sel) sel.value = '';
-  save(); renderTasks();
-}
-
-function toggleTask(i) {
-  if (!G) return;
-  G.dailyTasks[TODAY][i].done = !G.dailyTasks[TODAY][i].done;
-  save(); renderTasks();
-}
-
-function removeTask(i) {
-  if (!G) return;
-  G.dailyTasks[TODAY].splice(i,1);
-  save(); renderTasks();
 }
 
 async function logDay() {
