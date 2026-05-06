@@ -149,7 +149,7 @@ body { background: var(--color-background-primary, #ffffff); }
     <!-- The Goal Section -->
     <div class="card-white" id="dashboard-header-card" style="margin-bottom:16px; border-top: 4px solid #10B981;">
       <div class="label" style="margin-bottom:6px">Major Goal</div>
-      <input class="inp" id="app-goal" placeholder="e.g. Launch project and hit first milestone" style="font-size: 18px; font-weight: 700; border:none; padding: 0; margin-bottom: 12px;" onchange="updateGoal()" />
+      <textarea class="inp" id="app-goal" placeholder="e.g. Launch project and hit first milestone" style="font-size: 18px; font-weight: 700; border:none; padding: 0; margin-bottom: 12px; resize:none; overflow:hidden;" onchange="updateGoal()" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" rows="1"></textarea>
       
       <div class="label" style="margin-bottom:6px">Target Deadline</div>
       <input class="inp inp-date" type="date" id="app-deadline" style="border:none; padding:0; font-weight:500;" onchange="updateGoal()" />
@@ -188,7 +188,13 @@ body { background: var(--color-background-primary, #ffffff); }
     <button class="btn btn-sm" onclick="addChunk()" style="margin-bottom:24px; color:var(--color-text-tertiary); border-style: dashed;">+ Add Milestone</button>
 
     <!-- Today's Tasks -->
-    <div class="label" style="margin-bottom:8px">Today's Action Plan</div>
+    <div class="label" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+      <span>Today's Action Plan</span>
+      <span id="m-tasks-pct" style="font-weight:700; color:var(--color-text-primary);">0%</span>
+    </div>
+    <div class="progress-track" style="margin:0 0 12px 0; height:6px;">
+      <div id="m-tasks-progress" class="progress-fill" style="width:0%"></div>
+    </div>
     <div class="card-white" id="m-tasks-card" style="margin-bottom:20px; padding: 16px;">
       <div id="m-tasks-list"></div>
       
@@ -344,8 +350,12 @@ function openGoal(id) {
   if(!G.dailyTasks) G.dailyTasks = {};
   if(!G.log) G.log = {};
 
-  document.getElementById('app-goal').value = G.goal || '';
+  const appGoalEl = document.getElementById('app-goal');
+  appGoalEl.value = G.goal || '';
+  setTimeout(() => { appGoalEl.style.height = 'auto'; appGoalEl.style.height = appGoalEl.scrollHeight + 'px'; }, 10);
+  
   document.getElementById('app-deadline').value = G.deadline || '';
+
   
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
@@ -560,11 +570,29 @@ function renderTasks() {
       <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px; ${t.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
         ${t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
       </div>
-      <span class="small" style="flex:1; font-size:14px; display:flex; align-items:center; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text} ${chunkTag}</span>
+      <div style="flex:1; display:flex; align-items:center; overflow:hidden;">
+        <input type="text" value="${t.text.replace(/"/g, '&quot;')}" onchange="updateTaskText(${i}, this.value)" style="border:none; background:transparent; font-size:14px; outline:none; flex:1; font-family:inherit; color:inherit; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" />
+        ${chunkTag}
+      </div>
       <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px">&times;</button>
     `;
     list.appendChild(row);
   });
+  
+  // Update progress bar
+  const pct = tasks.length > 0 ? Math.round((tasks.filter(t => t.done).length / tasks.length) * 100) : 0;
+  const pb = document.getElementById('m-tasks-progress');
+  const pt = document.getElementById('m-tasks-pct');
+  if(pb) { pb.style.width = pct + '%'; pb.style.background = G.color || '#10B981'; }
+  if(pt) { pt.textContent = pct + '%'; pt.style.color = G.color || '#10B981'; }
+}
+
+function updateTaskText(i, newText) {
+  if (!G) return;
+  const val = newText.trim();
+  if(!val) return removeTask(i);
+  G.dailyTasks[TODAY][i].text = val;
+  save();
 }
 
 function addDailyTask() {
@@ -638,6 +666,29 @@ function renderHistory() {
     dot.title = d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
     if (i === 0) dot.style.boxShadow = '0 0 0 2px ' + (G.color || '#10B981'); // Highlight Today
     
+    // Long press toggle for past and present days
+    if (d <= new Date()) {
+      let pressTimer;
+      let isDragging = false;
+      const startPress = () => {
+        isDragging = false;
+        pressTimer = setTimeout(() => {
+          pressTimer = null;
+          toggleDayLog(key);
+        }, 600);
+      };
+      const cancelPress = () => { if(pressTimer) clearTimeout(pressTimer); };
+      
+      dot.onmousedown = startPress;
+      dot.ontouchstart = startPress;
+      dot.onmousemove = () => { isDragging = true; cancelPress(); };
+      dot.ontouchmove = () => { isDragging = true; cancelPress(); };
+      dot.onmouseup = cancelPress;
+      dot.onmouseleave = cancelPress;
+      dot.ontouchend = cancelPress;
+      dot.style.cursor = 'pointer';
+    }
+    
     if (logged) {
       dot.style.background = G.color || '#10B981';
       dot.style.color = '#fff';
@@ -650,6 +701,34 @@ function renderHistory() {
     }
     cont.appendChild(dot);
   }
+}
+
+function toggleDayLog(key) {
+  if (!G) return;
+  if (!G.log) G.log = {};
+  if (G.log[key]) {
+    delete G.log[key]; // undo
+  } else {
+    G.log[key] = true; // tick
+  }
+  recalculateStreak();
+  save();
+  renderHistory();
+  document.getElementById('stat-streak').textContent = G.streak || 0;
+  showLogMsg('History updated.');
+}
+
+function recalculateStreak() {
+  if (!G || !G.log) return;
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    if (i === 0 && !G.log[key]) continue; // If today is missed, keep checking yesterday
+    if (G.log[key]) streak++;
+    else break;
+  }
+  G.streak = streak;
 }
 
 function daysUntil(dateStr) {
