@@ -192,8 +192,11 @@ body { background: var(--color-background-primary, #ffffff); }
     <div class="card-white" id="m-tasks-card" style="margin-bottom:20px; padding: 16px;">
       <div id="m-tasks-list"></div>
       
-      <div class="row" style="margin-top:12px;gap:6px">
-        <input class="inp" id="m-task-inp" placeholder="Add a task for today..." style="margin-bottom:0;flex:1" onkeydown="if(event.key==='Enter')addDailyTask()"/>
+      <div class="row" style="margin-top:12px;gap:6px; flex-wrap:wrap;">
+        <input class="inp" id="m-task-inp" placeholder="Add a task for today..." style="margin-bottom:0;flex:1; min-width:140px;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
+        <select class="inp" id="m-task-chunk" style="margin-bottom:0; width:auto; max-width:140px; padding:8px 6px; font-size:12px; cursor:pointer;">
+          <option value="">No milestone</option>
+        </select>
         <button class="btn btn-sm btn-green" onclick="addDailyTask()">Add</button>
       </div>
     </div>
@@ -506,6 +509,25 @@ function renderChunks() {
     `;
     cont.appendChild(div);
   });
+  updateMilestoneDropdown();
+}
+
+function updateMilestoneDropdown() {
+  const sel = document.getElementById('m-task-chunk');
+  if(!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">Link to milestone...</option>';
+  if(G && G.chunks) {
+    G.chunks.forEach((c, i) => {
+      if(c.name.trim() !== '') {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = c.name;
+        sel.appendChild(opt);
+      }
+    });
+  }
+  sel.value = currentVal;
 }
 
 function getTasksToday() { return G ? (G.dailyTasks[TODAY] || []) : []; }
@@ -526,6 +548,11 @@ function renderTasks() {
   }
   
   tasks.forEach((t, i) => {
+    let chunkTag = '';
+    if (t.chunkName) {
+      chunkTag = `<span style="font-size:10px; border: 1px solid var(--color-border-tertiary); padding:2px 6px; border-radius:4px; margin-left:6px; color:${G.color||'#10B981'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; display:inline-block; vertical-align:middle;">${t.chunkName}</span>`;
+    }
+    
     const row = document.createElement('div');
     row.className = 'row';
     row.style.cssText = 'padding:8px 0;border-bottom:0.5px dashed var(--color-border-tertiary);gap:10px';
@@ -533,7 +560,7 @@ function renderTasks() {
       <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px; ${t.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
         ${t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
       </div>
-      <span class="small" style="flex:1; font-size:14px; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text}</span>
+      <span class="small" style="flex:1; font-size:14px; display:flex; align-items:center; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text} ${chunkTag}</span>
       <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px">&times;</button>
     `;
     list.appendChild(row);
@@ -543,11 +570,15 @@ function renderTasks() {
 function addDailyTask() {
   if (!G) return;
   const inp = document.getElementById('m-task-inp');
+  const sel = document.getElementById('m-task-chunk');
   const val = inp.value.trim();
+  const chunkName = sel && sel.value !== "" ? sel.options[sel.selectedIndex].text : "";
+  
   if(!val) return;
   if(!G.dailyTasks[TODAY]) G.dailyTasks[TODAY] = [];
-  G.dailyTasks[TODAY].push({text:val, done:false});
+  G.dailyTasks[TODAY].push({text:val, done:false, chunkName: chunkName});
   inp.value = '';
+  if(sel) sel.value = '';
   save(); renderTasks();
 }
 
