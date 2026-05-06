@@ -124,6 +124,10 @@ body { background: var(--color-background-primary, #ffffff); }
       
       <div class="label" style="margin-bottom:6px">Target Deadline</div>
       <input class="inp inp-date" type="date" id="app-deadline" style="border:none; padding:0; font-weight:500;" onchange="updateGoal()" />
+      
+      <div class="divider" style="margin: 12px 0 8px;"></div>
+      <div class="label" style="margin-bottom:8px">Goal Theme Color</div>
+      <div id="color-picker" style="display:flex; gap:10px; margin-bottom:4px;"></div>
     </div>
 
     <!-- Visual Dashboard -->
@@ -247,7 +251,25 @@ function renderGoalList() {
     
     const div = document.createElement('div');
     div.className = 'card-white goal-card';
-    div.onclick = () => openGoal(goalObj.id);
+    
+    // Long Press Logic
+    let pressTimer;
+    const startPress = (e) => {
+      pressTimer = setTimeout(() => {
+        if(confirm('Delete goal: "' + (goalObj.goal || 'Unnamed Goal') + '"?')) {
+          appData.goals = appData.goals.filter(g => g.id !== goalObj.id);
+          save(); renderGoalList();
+        }
+      }, 800);
+    };
+    const cancelPress = () => clearTimeout(pressTimer);
+    
+    div.onmousedown = startPress;
+    div.ontouchstart = startPress;
+    div.onmouseup = cancelPress;
+    div.onmouseleave = cancelPress;
+    div.ontouchend = cancelPress;
+    div.onclick = (e) => { if (pressTimer) { clearTimeout(pressTimer); openGoal(goalObj.id); } };
     
     div.innerHTML = `
       <div class="row-between" style="margin-bottom: 8px;">
@@ -293,7 +315,25 @@ function openGoal(id) {
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
   
-  // Set theme color
+  renderColorPicker();
+  applyThemeColor();
+  
+  renderAll();
+}
+
+function renderColorPicker() {
+  const cont = document.getElementById('color-picker');
+  cont.innerHTML = '';
+  COLORS.forEach(c => {
+    const dot = document.createElement('div');
+    dot.style.cssText = `width:24px; height:24px; border-radius:50%; background:${c}; cursor:pointer; border:2px solid ${G.color === c ? '#fff' : 'transparent'}; box-shadow: 0 0 0 1px ${G.color === c ? c : 'transparent'};`;
+    dot.onclick = () => { G.color = c; save(); applyThemeColor(); renderProgress(); renderHistory(); };
+    cont.appendChild(dot);
+  });
+}
+
+function applyThemeColor() {
+  if (!G) return;
   const color = G.color || '#10B981';
   const headerCard = document.getElementById('dashboard-header-card');
   if(headerCard) headerCard.style.borderTopColor = color;
@@ -303,17 +343,13 @@ function openGoal(id) {
     document.querySelectorAll('.btn-green').forEach(b => b.style.backgroundColor = color);
   };
   updateButtons();
-  // Observer to catch dynamically added buttons
-  const observer = new MutationObserver(updateButtons);
-  observer.observe(document.getElementById('dashboard'), { childList: true, subtree: true });
   
   const streakIcon = document.getElementById('icon-streak');
   if(streakIcon) {
     streakIcon.style.background = color + '26'; // 15% opacity
     streakIcon.style.color = color;
   }
-  
-  renderAll();
+  renderColorPicker(); // Update selection
 }
 
 function updateGoal() {
