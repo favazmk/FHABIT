@@ -552,17 +552,25 @@ function renderTasks() {
     row.className = 'row';
     row.style.cssText = 'padding:8px 0;border-bottom:0.5px dashed var(--color-border-tertiary);gap:10px';
     row.innerHTML = `
-      <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px; ${t.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
+      <div class="check-box ${t.done?'green':''}" onclick="toggleTask(${i})" style="width:20px;height:20px;min-width:20px; margin-top:2px; ${t.done ? 'background:'+(G.color||'#10B981')+';border-color:'+(G.color||'#10B981') : ''}">
         ${t.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
       </div>
-      <div style="flex:1; display:flex; align-items:center; overflow:hidden;">
-        <div style="width:12px; height:12px; min-width:12px; border-radius:50%; background:${t.taskColor || 'transparent'}; border: 2px solid ${t.taskColor ? t.taskColor : 'transparent'}; margin-right:6px; cursor:pointer;" onclick="cycleExistingTaskColor(${i})" title="Set task color"></div>
-        <input type="text" value="${t.text.replace(/"/g, '&quot;')}" onchange="updateTaskText(${i}, this.value)" style="border:none; background:transparent; font-size:14px; outline:none; flex:1; font-family:inherit; color:inherit; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}" />
+      <div style="flex:1; display:flex; align-items:flex-start; overflow:hidden;">
+        <div style="width:14px; height:14px; min-width:14px; border-radius:50%; background:${t.taskColor || 'transparent'}; border: 2px solid ${t.taskColor ? t.taskColor : 'var(--color-border-tertiary)'}; margin-right:8px; margin-top:4px; cursor:pointer;" onclick="cycleExistingTaskColor(${i})" title="Set task color"></div>
+        <textarea oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'" onchange="updateTaskText(${i}, this.value)" rows="1" style="border:none; background:transparent; font-size:14px; outline:none; flex:1; font-family:inherit; color:inherit; resize:none; overflow:hidden; padding:0; line-height:1.4; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
       </div>
-      <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px">&times;</button>
+      <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px; margin-top:2px;">&times;</button>
     `;
     list.appendChild(row);
   });
+  
+  // Auto-resize textareas after DOM insertion
+  setTimeout(() => {
+    document.querySelectorAll('#m-tasks-list textarea').forEach(ta => {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+    });
+  }, 10);
   
   // Update progress bar
   const pct = tasks.length > 0 ? Math.round((tasks.filter(t => t.done).length / tasks.length) * 100) : 0;
