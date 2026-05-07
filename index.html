@@ -205,6 +205,7 @@ body { background: var(--color-background-primary, #ffffff); }
       <div class="row" style="margin-top:12px;gap:6px; flex-wrap:wrap;">
         <div id="m-task-color-btn" style="width:24px;height:24px;border-radius:50%;background:transparent;border:2px solid var(--color-border-tertiary, #ccc);cursor:pointer; flex-shrink:0;" onclick="cycleTaskColor()" data-color=""></div>
         <input class="inp" id="m-task-inp" placeholder="Add a task for today..." style="margin-bottom:0;flex:1; min-width:140px;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
+        <input class="inp" id="m-task-time" type="time" style="margin-bottom:0; width:auto; padding: 7px 8px; flex-shrink:0;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
         <button class="btn btn-sm btn-green" onclick="addDailyTask()">Add</button>
       </div>
     </div>
@@ -250,6 +251,7 @@ async function load(){
       if(!g.color) g.color = COLORS[i % COLORS.length];
     });
   }catch(e){}
+  initNotifications();
   showHome();
 }
 
@@ -568,6 +570,7 @@ function renderTasks() {
       <div style="flex:1; display:flex; align-items:flex-start; overflow:hidden;">
         <div style="width:14px; height:14px; min-width:14px; border-radius:50%; background:${t.taskColor || 'transparent'}; border: 2px solid ${t.taskColor ? t.taskColor : 'var(--color-border-tertiary, #ccc)'}; margin-right:8px; margin-top:4px; cursor:pointer;" onclick="cycleExistingTaskColor(${i})" title="Set task color"></div>
         <textarea oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'" onchange="updateTaskText(${i}, this.value)" rows="1" style="border:none; background:transparent; font-size:14px; outline:none; flex:1; font-family:inherit; color:inherit; resize:none; overflow:hidden; padding:0; line-height:1.4; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+        <input type="time" class="inp" value="${t.time || ''}" style="width:auto; padding:2px 4px; border:none; background:transparent; font-size:12px; margin:0 4px 0 8px; color:var(--color-text-secondary); cursor:pointer;" onchange="updateTaskTime(${i}, this.value)" />
       </div>
       <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px; margin-top:2px;">&times;</button>
     `;
@@ -622,18 +625,45 @@ function cycleExistingTaskColor(i) {
   save(); renderTasks();
 }
 
+function sortTasks() {
+  if (!G || !G.dailyTasks[selectedDate]) return;
+  G.dailyTasks[selectedDate].sort((a, b) => {
+    if (a.time && b.time) return a.time.localeCompare(b.time);
+    if (a.time) return -1;
+    if (b.time) return 1;
+    return 0;
+  });
+}
+
 function addDailyTask() {
   if (!G) return;
   const inp = document.getElementById('m-task-inp');
+  const timeInp = document.getElementById('m-task-time');
   const colorBtn = document.getElementById('m-task-color-btn');
   const val = inp.value.trim();
+  const timeVal = timeInp ? timeInp.value : '';
   const taskColor = colorBtn ? colorBtn.getAttribute('data-color') : '';
   
   if(!val) return;
   if(!G.dailyTasks[selectedDate]) G.dailyTasks[selectedDate] = [];
-  G.dailyTasks[selectedDate].push({text:val, done:false, taskColor: taskColor});
+  G.dailyTasks[selectedDate].push({text:val, time: timeVal, done:false, taskColor: taskColor});
+  
+  if(timeVal && "Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
+  
+  sortTasks();
   inp.value = '';
+  if(timeInp) timeInp.value = '';
   save(); renderTasks();
+}
+
+function updateTaskTime(i, newTime) {
+  if (!G) return;
+  G.dailyTasks[selectedDate][i].time = newTime;
+  sortTasks();
+  save();
+  renderTasks();
 }
 
 function toggleTask(i) {
@@ -807,6 +837,52 @@ function importData(event) {
     }
   };
   reader.readAsText(file);
+}
+
+let notificationInterval = null;
+
+function initNotifications() {
+  if (!("Notification" in window)) return;
+  if (notificationInterval) clearInterval(notificationInterval);
+  notificationInterval = setInterval(checkNotifications, 60000);
+  
+  // Initial check on load
+  setTimeout(checkNotifications, 2000); 
+}
+
+function checkNotifications() {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  
+  let tasksChanged = false;
+  const now = new Date();
+  const currentHours = String(now.getHours()).padStart(2, '0');
+  const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+  const currentTime = `${currentHours}:${currentMinutes}`;
+  
+  // Look 5 minutes ahead
+  const later = new Date(now.getTime() + 5 * 60000);
+  const laterHours = String(later.getHours()).padStart(2, '0');
+  const laterMinutes = String(later.getMinutes()).padStart(2, '0');
+  const laterTime = `${laterHours}:${laterMinutes}`;
+
+  appData.goals.forEach(goal => {
+    if(!goal.dailyTasks || !goal.dailyTasks[TODAY]) return;
+    
+    goal.dailyTasks[TODAY].forEach(task => {
+      if (!task.done && task.time && !task.notified) {
+        if (task.time === currentTime || task.time === laterTime) {
+          new Notification("fhabit Reminder", {
+            body: `Upcoming task: ${task.text} at ${task.time} (${goal.goal || 'Goal'})`,
+            icon: 'favicon.png'
+          });
+          task.notified = true;
+          tasksChanged = true;
+        }
+      }
+    });
+  });
+
+  if (tasksChanged) save();
 }
 
 load();
