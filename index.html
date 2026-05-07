@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Goal & Daily Tracker</title>
+<title>fhabit</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -63,8 +64,11 @@ body { background: var(--color-background-primary, #ffffff); }
 .bg-blue-light { background: rgba(59,130,246,0.15); color: #3B82F6; }
 .bg-red-light { background: rgba(244,63,94,0.15); color: #F43F5E; }
 
-.history-dot { flex: 1; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; transition: transform 0.1s; cursor: default;}
-.history-dot:hover { transform: scale(1.1); }
+.history-dot { flex: 0 0 40px; height: 44px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; scroll-snap-align: start; }
+.history-dot:hover { transform: translateY(-2px); }
+.history-dot.active { border: 2px solid #10B981; transform: scale(1.05); box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
+.history-dot .dot-day { font-size: 9px; opacity: 0.7; text-transform: uppercase; margin-bottom: 2px; }
+.history-dot .dot-num { font-size: 15px; }
 
 @media(prefers-color-scheme:dark){
   :root {
@@ -84,7 +88,7 @@ body { background: var(--color-background-primary, #ffffff); }
 <body>
 
 <div class="root">
-  <h2 class="sr-only">Goal Tracker Dashboard</h2>
+  <h2 class="sr-only">fhabit Dashboard</h2>
   
   <!-- MODAL OVERLAY -->
   <div id="goal-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding:20px;">
@@ -216,9 +220,10 @@ body { background: var(--color-background-primary, #ffffff); }
 
     <div class="card" style="margin-bottom:24px">
       <div class="label" style="margin-bottom:12px; display:flex; justify-content:space-between;">
-        <span>Next 14 Days</span>
+        <span>Daily History</span>
+        <span class="small muted">Swipe to see more</span>
       </div>
-      <div id="m-history" style="display:flex;gap:4px; width: 100%;"></div>
+      <div id="m-history" style="display:flex; gap:8px; width: 100%; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;"></div>
     </div>
 
     <div style="text-align:center; margin-top:30px;">
@@ -235,7 +240,7 @@ const COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4'
 let appData = { goals: [] };
 let activeGoalId = null;
 let G = null; 
-
+let selectedDate = TODAY;
 async function load(){
   try{ 
     const r = localStorage.getItem('gtd:appData'); 
@@ -530,13 +535,18 @@ function cycleChunkColor(i) {
 }
 
 
-function getTasksToday() { return G ? (G.dailyTasks[TODAY] || []) : []; }
+function getTasksForDate() { return G ? (G.dailyTasks[selectedDate] || []) : []; }
 
 function renderTasks() {
   if (!G) return;
   const list = document.getElementById('m-tasks-list');
-  const tasks = getTasksToday();
+  const tasks = getTasksForDate();
   list.innerHTML = '';
+  
+  // Update section title with selected date
+  const dateLabel = new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const isToday = selectedDate === TODAY;
+  document.querySelector('#dashboard .label span:first-child').nextElementSibling.previousElementSibling.textContent = isToday ? "Today's Action Plan" : `Action Plan: ${dateLabel}`;
   
   if(!tasks.length){
     list.innerHTML = `
@@ -584,7 +594,7 @@ function updateTaskText(i, newText) {
   if (!G) return;
   const val = newText.trim();
   if(!val) return removeTask(i);
-  G.dailyTasks[TODAY][i].text = val;
+  G.dailyTasks[selectedDate][i].text = val;
   save();
 }
 
@@ -605,10 +615,10 @@ function cycleTaskColor() {
 
 function cycleExistingTaskColor(i) {
   if (!G) return;
-  const currentColor = G.dailyTasks[TODAY][i].taskColor || '';
+  const currentColor = G.dailyTasks[selectedDate][i].taskColor || '';
   const idx = COLORS.indexOf(currentColor);
   const nextColor = idx >= 0 && idx < COLORS.length - 1 ? COLORS[idx + 1] : (idx === COLORS.length - 1 ? '' : COLORS[0]);
-  G.dailyTasks[TODAY][i].taskColor = nextColor;
+  G.dailyTasks[selectedDate][i].taskColor = nextColor;
   save(); renderTasks();
 }
 
@@ -620,27 +630,29 @@ function addDailyTask() {
   const taskColor = colorBtn ? colorBtn.getAttribute('data-color') : '';
   
   if(!val) return;
-  if(!G.dailyTasks[TODAY]) G.dailyTasks[TODAY] = [];
-  G.dailyTasks[TODAY].push({text:val, done:false, taskColor: taskColor});
+  if(!G.dailyTasks[selectedDate]) G.dailyTasks[selectedDate] = [];
+  G.dailyTasks[selectedDate].push({text:val, done:false, taskColor: taskColor});
   inp.value = '';
   save(); renderTasks();
 }
 
 function toggleTask(i) {
   if (!G) return;
-  G.dailyTasks[TODAY][i].done = !G.dailyTasks[TODAY][i].done;
+  G.dailyTasks[selectedDate][i].done = !G.dailyTasks[selectedDate][i].done;
   save(); renderTasks();
 }
 
 function removeTask(i) {
   if (!G) return;
-  G.dailyTasks[TODAY].splice(i,1);
+  G.dailyTasks[selectedDate].splice(i,1);
   save(); renderTasks();
 }
 
 async function logDay() {
   if (!G) return;
   
+  // Always log for TODAY regardless of selection
+  const targetDate = TODAY;
   const last = G.lastLogged;
   if(last) {
     const diff = Math.round((new Date(TODAY) - new Date(last))/(1000*60*60*24));
@@ -652,9 +664,9 @@ async function logDay() {
     G.streak = 1; 
   }
   
-  G.lastLogged = TODAY;
+  G.lastLogged = targetDate;
   if(!G.log) G.log = {};
-  G.log[TODAY] = true;
+  G.log[targetDate] = true;
   
   await save();
   document.getElementById('stat-streak').textContent = G.streak;
@@ -672,49 +684,50 @@ function renderHistory() {
   if (!G) return;
   const cont = document.getElementById('m-history');
   cont.innerHTML = '';
-  for(let i = 0; i < 14; i++) {
+  
+  // Show last 7 days to next 14 days for a 21-day window
+  for(let i = -7; i < 14; i++) {
     const d = new Date(); d.setDate(d.getDate() + i);
     const key = d.toISOString().split('T')[0];
     const logged = !!(G.log && G.log[key]);
+    const isSelected = key === selectedDate;
+    const isToday = key === TODAY;
     
     const dot = document.createElement('div');
-    dot.className = 'history-dot';
-    dot.title = d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-    if (i === 0) dot.style.boxShadow = '0 0 0 2px ' + (G.color || '#10B981'); // Highlight Today
+    dot.className = `history-dot ${isSelected ? 'active' : ''}`;
+    dot.onclick = () => { selectedDate = key; renderAll(); };
     
-    // Long press toggle for past and present days
-    if (d <= new Date()) {
-      let pressTimer;
-      let isDragging = false;
-      const startPress = () => {
-        isDragging = false;
-        pressTimer = setTimeout(() => {
-          pressTimer = null;
-          toggleDayLog(key);
-        }, 600);
-      };
-      const cancelPress = () => { if(pressTimer) clearTimeout(pressTimer); };
-      
-      dot.onmousedown = startPress;
-      dot.ontouchstart = startPress;
-      dot.onmousemove = () => { isDragging = true; cancelPress(); };
-      dot.ontouchmove = () => { isDragging = true; cancelPress(); };
-      dot.onmouseup = cancelPress;
-      dot.onmouseleave = cancelPress;
-      dot.ontouchend = cancelPress;
-      dot.style.cursor = 'pointer';
-    }
+    const dayName = d.toLocaleDateString('en-US', {weekday:'short'});
+    const dayNum = d.getDate();
+    
+    dot.innerHTML = `
+      <div class="dot-day">${dayName}</div>
+      <div class="dot-num">${dayNum}</div>
+    `;
     
     if (logged) {
       dot.style.background = G.color || '#10B981';
       dot.style.color = '#fff';
-      dot.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      dot.style.borderColor = G.color || '#10B981';
     } else {
       dot.style.background = 'var(--color-background-secondary)';
       dot.style.border = '0.5px solid var(--color-border-tertiary)';
       dot.style.color = 'var(--color-text-tertiary)';
-      dot.textContent = d.getDate();
     }
+
+    if (isToday && !isSelected) {
+       dot.style.boxShadow = '0 0 0 2px ' + (G.color || '#10B981');
+    }
+
+    // Long press toggle for logging
+    if (d <= new Date()) {
+      let pressTimer;
+      dot.onmousedown = () => { pressTimer = setTimeout(() => toggleDayLog(key), 600); };
+      dot.ontouchstart = () => { pressTimer = setTimeout(() => toggleDayLog(key), 600); };
+      dot.onmouseup = () => clearTimeout(pressTimer);
+      dot.ontouchend = () => clearTimeout(pressTimer);
+    }
+    
     cont.appendChild(dot);
   }
 }

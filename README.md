@@ -1,4 +1,4 @@
-# Personal Habit Tracker
+# fhabit
 
 A simple, beautiful, and functional habit tracker built with HTML, CSS, and Vanilla JavaScript.
 
