@@ -421,13 +421,36 @@ function renderGoalList() {
     }
     miniHistoryHTML += '</div>';
     
+    const completedDays = Object.keys(goalObj.log || {}).length;
+    let totalStr = '';
+    
+    const loggedDates = Object.keys(goalObj.log || {}).sort();
+    let startTime = Infinity;
+    if(loggedDates.length > 0) {
+      const dStart = new Date(loggedDates[0]);
+      dStart.setHours(12,0,0,0);
+      startTime = dStart.getTime();
+    } else {
+      const ts = parseInt(goalObj.id.substring(2, 15));
+      if(!isNaN(ts)) {
+        const dStart = new Date(ts);
+        dStart.setHours(12,0,0,0);
+        startTime = dStart.getTime();
+      }
+    }
+    const todayTime = new Date(TODAY).getTime();
+    if (startTime !== Infinity && todayTime >= startTime) {
+      const tDays = Math.round((todayTime - startTime) / (1000 * 60 * 60 * 24)) + 1;
+      totalStr = '/' + tDays;
+    }
+
     div.innerHTML = `
       <div class="row-between" style="margin-bottom: 8px;">
         <div class="section-title" style="font-size:17px; line-height:1.3;">${goalObj.goal || 'Unnamed Goal'}</div>
       </div>
       <div class="row-between tiny muted" style="margin-bottom:8px;">
         <span>${pct}% Milestones Done</span>
-        <span style="font-weight:700; color:${goalObj.color || '#10B981'};">${goalObj.streak || 0} Day Streak</span>
+        <span style="font-weight:700; color:${goalObj.color || '#10B981'};">${completedDays}${totalStr} Days Logged</span>
       </div>
       <div class="progress-track" style="margin:0; height:4px;">
          <div class="progress-fill" style="width:${pct}%; background:${goalObj.color || '#10B981'}"></div>
@@ -822,8 +845,33 @@ function renderProgress() {
     daysEl.textContent = '--'; daysLabel.textContent = 'No Deadline';
   }
 
-  document.getElementById('stat-streak').textContent = G.streak || 0;
-  document.getElementById('stat-streak').style.color = G.color || '#10B981';
+  const completedDays = Object.keys(G.log || {}).length;
+  let totalStr = '';
+  
+  const loggedDates = Object.keys(G.log || {}).sort();
+  let startTime = Infinity;
+  if(loggedDates.length > 0) {
+    const dStart = new Date(loggedDates[0]);
+    dStart.setHours(12,0,0,0);
+    startTime = dStart.getTime();
+  } else {
+    const ts = parseInt(G.id.substring(2, 15));
+    if(!isNaN(ts)) {
+      const dStart = new Date(ts);
+      dStart.setHours(12,0,0,0);
+      startTime = dStart.getTime();
+    }
+  }
+  const todayTime = new Date(TODAY).getTime();
+  if (startTime !== Infinity && todayTime >= startTime) {
+    const tDays = Math.round((todayTime - startTime) / (1000 * 60 * 60 * 24)) + 1;
+    totalStr = '/' + tDays;
+  }
+
+  const streakEl = document.getElementById('stat-streak');
+  streakEl.textContent = completedDays + totalStr;
+  streakEl.style.color = G.color || '#10B981';
+  streakEl.style.fontSize = totalStr ? '24px' : '28px';
 }
 
 function renderChunks() {
