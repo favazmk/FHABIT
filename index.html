@@ -70,6 +70,17 @@ body { background: var(--color-background-primary, #ffffff); }
 .history-dot .dot-day { font-size: 9px; opacity: 0.7; text-transform: uppercase; margin-bottom: 2px; }
 .history-dot .dot-num { font-size: 15px; }
 
+/* Month Calendar */
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
+.calendar-day-header { text-align: center; font-size: 10px; font-weight: 700; color: var(--color-text-tertiary, #666); padding-bottom: 4px; }
+.calendar-day { aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; border: 1px solid var(--color-border-tertiary, #e0e0e0); cursor: pointer; transition: all 0.2s; }
+.calendar-day:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.calendar-day.empty { border: none; background: transparent; cursor: default; }
+.calendar-day.logged { color: #fff; font-weight: 700; border: none; }
+.calendar-day.missed { background: rgba(244,63,94,0.15); color: #F43F5E; }
+.calendar-day.future { border: 1px dashed var(--color-border-tertiary); opacity: 0.7; }
+.calendar-day.out-of-bounds { opacity: 0.3; border-color: transparent; }
+
 @media(prefers-color-scheme:dark){
   :root {
     --color-background-primary: #121212;
@@ -119,6 +130,63 @@ body { background: var(--color-background-primary, #ffffff); }
     </div>
   </div>
   
+    <!-- MONTH CALENDAR MODAL -->
+    <div id="calendar-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+      <div class="card-white" style="width:100%; max-width:340px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="row-between" style="margin-bottom:16px;">
+          <div class="row" style="gap:12px;">
+            <button class="btn-ghost" onclick="changeMonth(-1)" style="font-size:16px; padding:0 8px;">&lsaquo;</button>
+            <div class="section-title" id="calendar-month-title" style="font-size:18px; min-width:110px; text-align:center;">Month YYYY</div>
+            <button class="btn-ghost" onclick="changeMonth(1)" style="font-size:16px; padding:0 8px;">&rsaquo;</button>
+          </div>
+          <button class="btn-ghost" onclick="closeMonthCalendar()" style="font-size:20px;">&times;</button>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-day-header">SUN</div><div class="calendar-day-header">MON</div><div class="calendar-day-header">TUE</div><div class="calendar-day-header">WED</div><div class="calendar-day-header">THU</div><div class="calendar-day-header">FRI</div><div class="calendar-day-header">SAT</div>
+        </div>
+        <div class="calendar-grid" id="calendar-days-container" style="margin-top:0;"></div>
+      </div>
+    </div>
+
+    <!-- STREAK MODAL -->
+    <div id="streak-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+      <div class="card-white" style="width:100%; max-width:340px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="row-between" style="margin-bottom:16px;">
+          <div class="section-title" style="font-size:18px;">Streak History</div>
+          <button class="btn-ghost" onclick="closeStreakModal()" style="font-size:20px;">&times;</button>
+        </div>
+        <div class="row" style="margin-bottom:20px; justify-content:space-around;">
+          <div style="text-align:center;">
+            <div class="muted small">Current Streak</div>
+            <div class="streak-num" id="streak-modal-current" style="font-size:32px;">0</div>
+          </div>
+          <div style="text-align:center;">
+            <div class="muted small">Longest Streak</div>
+            <div class="streak-num" id="streak-modal-longest" style="font-size:32px; color:var(--color-text-primary);">0</div>
+          </div>
+        </div>
+        <div class="label" style="margin-bottom:8px;">Last 30 Days Activity</div>
+        <div id="streak-graph-container" style="display:grid; grid-template-columns: repeat(10, 1fr); gap:4px;"></div>
+      </div>
+    </div>
+
+    <!-- MILESTONE MODAL -->
+    <div id="milestone-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+      <div class="card-white" style="width:100%; max-width:340px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+        <div class="row-between" style="margin-bottom:16px;">
+          <div class="section-title" style="font-size:18px;">Milestone Progress</div>
+          <button class="btn-ghost" onclick="closeMilestoneModal()" style="font-size:20px;">&times;</button>
+        </div>
+        <div style="display:flex; justify-content:center; margin-bottom:20px;">
+          <div id="milestone-chart" style="width:120px; height:120px; border-radius:50%; background: conic-gradient(#10B981 0%, var(--color-background-secondary) 0%); display:flex; align-items:center; justify-content:center;">
+            <div style="width:100px; height:100px; border-radius:50%; background:var(--color-background-primary); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--color-text-primary);" id="milestone-chart-text">0%</div>
+          </div>
+        </div>
+        <div class="label" style="margin-bottom:8px;">Milestone Breakdown</div>
+        <div id="milestone-modal-list" style="max-height:200px; overflow-y:auto; padding-right:4px;"></div>
+      </div>
+    </div>
+    
   <!-- HOME SCREEN -->
   <div id="home-screen">
     <div class="row-between" style="margin-bottom:20px;">
@@ -161,7 +229,7 @@ body { background: var(--color-background-primary, #ffffff); }
 
     <!-- Visual Dashboard -->
     <div class="stats-grid">
-      <div class="stat-box">
+      <div class="stat-box" onclick="openMilestoneModal()" style="cursor:pointer;" title="View Milestones">
         <div id="icon-pct" class="icon-wrapper bg-green-light">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
         </div>
@@ -169,7 +237,7 @@ body { background: var(--color-background-primary, #ffffff); }
         <div class="stat-label">Milestones</div>
       </div>
       
-      <div class="stat-box">
+      <div class="stat-box" onclick="openMonthCalendar()" style="cursor:pointer;" title="View Calendar">
         <div id="icon-days" class="icon-wrapper bg-blue-light">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
         </div>
@@ -177,7 +245,7 @@ body { background: var(--color-background-primary, #ffffff); }
         <div class="stat-label" id="stat-days-label">Days Left</div>
       </div>
 
-      <div class="stat-box">
+      <div class="stat-box" onclick="openStreakModal()" style="cursor:pointer;" title="View Streak Graph">
         <div id="icon-streak" class="icon-wrapper" style="background: rgba(16,185,129,0.15); color: #10B981;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
         </div>
@@ -202,11 +270,15 @@ body { background: var(--color-background-primary, #ffffff); }
     <div class="card-white" id="m-tasks-card" style="margin-bottom:20px; padding: 16px;">
       <div id="m-tasks-list"></div>
       
-      <div class="row" style="margin-top:12px;gap:6px; flex-wrap:wrap;">
-        <div id="m-task-color-btn" style="width:24px;height:24px;border-radius:50%;background:transparent;border:2px solid var(--color-border-tertiary, #ccc);cursor:pointer; flex-shrink:0;" onclick="cycleTaskColor()" data-color=""></div>
-        <input class="inp" id="m-task-inp" placeholder="Add a task for today..." style="margin-bottom:0;flex:1; min-width:140px;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
-        <input class="inp" id="m-task-time" type="time" style="margin-bottom:0; width:auto; padding: 7px 8px; flex-shrink:0;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
-        <button class="btn btn-sm btn-green" onclick="addDailyTask()">Add</button>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div id="m-task-color-btn" style="width:24px;height:24px;border-radius:50%;background:transparent;border:2px solid var(--color-border-tertiary, #ccc);cursor:pointer; flex-shrink:0;" onclick="cycleTaskColor()" data-color=""></div>
+          <input class="inp" id="m-task-inp" placeholder="Add a task for today..." style="margin-bottom:0;flex:1;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
+        </div>
+        <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px;">
+          <input class="inp" id="m-task-time" type="time" style="margin-bottom:0; width:auto; padding: 7px 8px;" onkeydown="if(event.key==='Enter')addDailyTask()"/>
+          <button class="btn btn-sm btn-green" onclick="addDailyTask()">Add Task</button>
+        </div>
       </div>
     </div>
 
@@ -225,6 +297,12 @@ body { background: var(--color-background-primary, #ffffff); }
         <span class="small muted">Swipe to see more</span>
       </div>
       <div id="m-history" style="display:flex; gap:8px; width: 100%; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;"></div>
+    </div>
+
+    <!-- Today Reflection -->
+    <div class="card-white" style="margin-bottom:24px">
+      <div class="label" style="margin-bottom:8px">Today's Reflection</div>
+      <textarea id="m-reflection" class="inp" rows="3" placeholder="How did today go? What did you learn?" style="resize:vertical; min-height:80px; margin-bottom:0; font-size:14px;" oninput="saveReflection()"></textarea>
     </div>
 
     <div style="text-align:center; margin-top:30px;">
@@ -317,6 +395,32 @@ function renderGoalList() {
       } 
     };
     
+    let miniHistoryHTML = '<div style="display:flex; gap:4px; margin-top:12px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; pointer-events:none;">';
+    for(let i = -6; i <= 0; i++) {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      const logged = !!(goalObj.log && goalObj.log[key]);
+      const dayName = d.toLocaleDateString('en-US', {weekday:'short'});
+      const dayNum = d.getDate();
+      const isToday = key === TODAY;
+      
+      let style = '';
+      if(logged) {
+        style = `background:${goalObj.color || '#10B981'}; color:#fff; border:none;`;
+      } else {
+        style = `background:var(--color-background-secondary); border:0.5px solid var(--color-border-tertiary); color:var(--color-text-tertiary);`;
+      }
+      if(isToday && !logged) style += `box-shadow: 0 0 0 1px ${goalObj.color || '#10B981'};`;
+
+      miniHistoryHTML += `
+        <div style="flex:0 0 28px; height:32px; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:700; ${style}">
+          <div style="font-size:7px; opacity:0.8; text-transform:uppercase; margin-bottom:1px;">${dayName}</div>
+          <div style="font-size:11px;">${dayNum}</div>
+        </div>
+      `;
+    }
+    miniHistoryHTML += '</div>';
+    
     div.innerHTML = `
       <div class="row-between" style="margin-bottom: 8px;">
         <div class="section-title" style="font-size:17px; line-height:1.3;">${goalObj.goal || 'Unnamed Goal'}</div>
@@ -328,6 +432,7 @@ function renderGoalList() {
       <div class="progress-track" style="margin:0; height:4px;">
          <div class="progress-fill" style="width:${pct}%; background:${goalObj.color || '#10B981'}"></div>
       </div>
+      ${miniHistoryHTML}
     `;
     list.appendChild(div);
   });
@@ -339,7 +444,7 @@ function createNewGoal() {
     goal: '', deadline: '',
     color: COLORS[appData.goals.length % COLORS.length],
     chunks: [{ name: '', deadline: '', done: false }],
-    dailyTasks: {}, log: {}, streak: 0, lastLogged: null
+    dailyTasks: {}, log: {}, streak: 0, lastLogged: null, reflections: {}
   };
   appData.goals.unshift(newGoal);
   save();
@@ -354,6 +459,7 @@ function openGoal(id) {
   if(!G.chunks) G.chunks = [];
   if(!G.dailyTasks) G.dailyTasks = {};
   if(!G.log) G.log = {};
+  if(!G.reflections) G.reflections = {};
 
   const appGoalEl = document.getElementById('app-goal');
   appGoalEl.value = G.goal || '';
@@ -474,7 +580,220 @@ function removeChunk(index) {
 
 function renderAll() {
   if (!G) return;
-  renderProgress(); renderChunks(); renderTasks(); renderHistory();
+  renderProgress(); renderChunks(); renderTasks(); renderHistory(); renderReflection();
+}
+
+function renderReflection() {
+  if(!G) return;
+  const refEl = document.getElementById('m-reflection');
+  if(refEl) {
+    if(!G.reflections) G.reflections = {};
+    refEl.value = G.reflections[selectedDate] || '';
+    refEl.style.height = 'auto';
+    refEl.style.height = Math.max(80, refEl.scrollHeight) + 'px';
+  }
+}
+
+function saveReflection() {
+  if(!G) return;
+  const val = document.getElementById('m-reflection').value;
+  if(!G.reflections) G.reflections = {};
+  G.reflections[selectedDate] = val;
+  save();
+}
+
+let currentCalendarDate = new Date();
+
+function openMonthCalendar() {
+  if(!G) return;
+  currentCalendarDate = new Date(selectedDate);
+  document.getElementById('calendar-modal').style.display = 'flex';
+  renderMonthCalendar();
+}
+
+function closeMonthCalendar() {
+  document.getElementById('calendar-modal').style.display = 'none';
+}
+
+function changeMonth(delta) {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+  renderMonthCalendar();
+}
+
+function renderMonthCalendar() {
+  if(!G) return;
+  const year = currentCalendarDate.getFullYear();
+  const month = currentCalendarDate.getMonth();
+  
+  const title = currentCalendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  document.getElementById('calendar-month-title').textContent = title;
+  
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  const container = document.getElementById('calendar-days-container');
+  container.innerHTML = '';
+  
+  for(let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'calendar-day empty';
+    container.appendChild(empty);
+  }
+  
+  const todayDateObj = new Date(TODAY);
+  
+  const loggedDates = Object.keys(G.log || {}).sort();
+  let startTime = Infinity;
+  if(loggedDates.length > 0) {
+    const d = new Date(loggedDates[0]);
+    d.setHours(12,0,0,0);
+    startTime = d.getTime();
+  } else {
+    const ts = parseInt(G.id.substring(2, 15));
+    if(!isNaN(ts)) {
+      const d = new Date(ts);
+      d.setHours(12,0,0,0);
+      startTime = d.getTime();
+    }
+  }
+
+  let deadlineTime = Infinity;
+  if(G.deadline) {
+    const d = new Date(G.deadline);
+    d.setHours(12,0,0,0);
+    deadlineTime = d.getTime();
+  }
+  
+  for(let i = 1; i <= daysInMonth; i++) {
+    const d = new Date(year, month, i);
+    d.setHours(12, 0, 0, 0); 
+    const key = d.toISOString().split('T')[0];
+    const logged = !!(G.log && G.log[key]);
+    const isToday = key === TODAY;
+    const isSelected = key === selectedDate;
+    
+    const dTime = new Date(key).getTime();
+    const todayTime = new Date(TODAY).getTime();
+    
+    let timeClass = '';
+    if (dTime >= startTime && dTime < todayTime && !logged) {
+      timeClass = ' missed';
+    } else if (dTime > todayTime && dTime <= deadlineTime) {
+      timeClass = ' future';
+    } else if (dTime < startTime || dTime > deadlineTime) {
+      timeClass = ' out-of-bounds';
+    }
+    
+    const dayEl = document.createElement('div');
+    dayEl.className = 'calendar-day' + (logged ? ' logged' : '') + timeClass;
+    dayEl.textContent = i;
+    
+    if(logged) {
+      dayEl.style.background = G.color || '#10B981';
+    } else if(isToday) {
+      dayEl.style.color = G.color || '#10B981';
+      dayEl.style.border = '2px solid ' + (G.color || '#10B981');
+    }
+    
+    if(isSelected && !logged) {
+      dayEl.style.background = 'var(--color-background-secondary)';
+      dayEl.style.border = '2px solid var(--color-border-tertiary)';
+    }
+
+    dayEl.onclick = () => {
+      selectedDate = key;
+      renderAll();
+      closeMonthCalendar();
+    };
+    
+    container.appendChild(dayEl);
+  }
+}
+
+function openStreakModal() {
+  if(!G) return;
+  document.getElementById('streak-modal').style.display = 'flex';
+  document.getElementById('streak-modal-current').textContent = G.streak || 0;
+  
+  let maxStreak = 0;
+  let currentCounter = 0;
+  const loggedDates = Object.keys(G.log || {}).sort();
+  for(let i = 0; i < loggedDates.length; i++) {
+    if(i === 0) { currentCounter = 1; }
+    else {
+      const prev = new Date(loggedDates[i-1]);
+      const curr = new Date(loggedDates[i]);
+      const diff = Math.round((curr - prev)/(1000*60*60*24));
+      if(diff === 1) currentCounter++;
+      else if(diff > 1) currentCounter = 1;
+    }
+    if(currentCounter > maxStreak) maxStreak = currentCounter;
+  }
+  document.getElementById('streak-modal-longest').textContent = maxStreak;
+  
+  const container = document.getElementById('streak-graph-container');
+  container.innerHTML = '';
+  for(let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const logged = !!(G.log && G.log[key]);
+    
+    const block = document.createElement('div');
+    block.style.aspectRatio = '1';
+    block.style.borderRadius = '4px';
+    if(logged) {
+      block.style.background = G.color || '#10B981';
+    } else {
+      block.style.background = 'var(--color-background-secondary)';
+      block.style.border = '1px solid var(--color-border-tertiary)';
+    }
+    block.title = new Date(key).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    container.appendChild(block);
+  }
+}
+
+function closeStreakModal() {
+  document.getElementById('streak-modal').style.display = 'none';
+}
+
+function openMilestoneModal() {
+  if(!G) return;
+  document.getElementById('milestone-modal').style.display = 'flex';
+  
+  const chunks = (G.chunks||[]).filter(c => c.name.trim() !== '');
+  const total = chunks.length;
+  const done = chunks.filter(c => c.done).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  
+  const color = G.color || '#10B981';
+  const chart = document.getElementById('milestone-chart');
+  chart.style.background = `conic-gradient(${color} ${pct}%, var(--color-background-secondary) 0%)`;
+  document.getElementById('milestone-chart-text').textContent = pct + '%';
+  
+  const listCont = document.getElementById('milestone-modal-list');
+  listCont.innerHTML = '';
+  
+  if(total === 0) {
+    listCont.innerHTML = '<div class="muted small" style="text-align:center; padding:10px;">No milestones added yet.</div>';
+    return;
+  }
+  
+  chunks.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.style.cssText = 'padding:8px 0; border-bottom:0.5px solid var(--color-border-tertiary);';
+    row.innerHTML = `
+      <div class="check-box ${c.done?'green':''}" style="width:16px;height:16px;min-width:16px;border-radius:4px; pointer-events:none; ${c.done ? 'background:'+color+';border-color:'+color : ''}">
+        ${c.done?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"></polyline></svg>':''}
+      </div>
+      <div style="flex:1; font-size:14px; ${c.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${c.name}</div>
+    `;
+    listCont.appendChild(row);
+  });
+}
+
+function closeMilestoneModal() {
+  document.getElementById('milestone-modal').style.display = 'none';
 }
 
 function renderProgress() {
