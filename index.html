@@ -937,7 +937,7 @@ function renderTasks() {
       <div style="flex:1; display:flex; align-items:flex-start; overflow:hidden;">
         <div style="width:14px; height:14px; min-width:14px; border-radius:50%; background:${t.taskColor || 'transparent'}; border: 2px solid ${t.taskColor ? t.taskColor : 'var(--color-border-tertiary, #ccc)'}; margin-right:8px; margin-top:4px; cursor:pointer;" onclick="cycleExistingTaskColor(${i})" title="Set task color"></div>
         <textarea oninput="this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'" onchange="updateTaskText(${i}, this.value)" rows="1" style="border:none; background:transparent; font-size:14px; outline:none; flex:1; font-family:inherit; color:inherit; resize:none; overflow:hidden; padding:0; line-height:1.4; ${t.done?'text-decoration:line-through;color:var(--color-text-tertiary)':''}">${t.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
-        <input type="time" class="inp" value="${t.time || ''}" style="width:auto; padding:2px 4px; border:none; background:transparent; font-size:12px; margin:0 4px 0 8px; color:var(--color-text-secondary); cursor:pointer;" onchange="updateTaskTime(${i}, this.value)" />
+        <input type="time" class="inp" value="${t.time || ''}" style="width:auto; padding:2px 4px; border:none; background:transparent; font-size:12px; margin:0 4px 0 8px; color:var(--color-text-secondary); cursor:pointer;" onblur="updateTaskTime(${i}, this.value)" />
       </div>
       <button class="btn-ghost" onclick="removeTask(${i})" style="font-size:16px; margin-top:2px;">&times;</button>
     `;
